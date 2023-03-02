@@ -321,10 +321,7 @@ def get_clusterview_data(
     )
 
     group_colors = pd.Series(
-        [
-            cluster_groups_data[g].application_data.klustaviewa.color or 1
-            for g in groups
-        ],
+        [1 for g in groups],
         index=groups,
     )
     group_names = pd.Series(
