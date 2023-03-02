@@ -432,8 +432,10 @@ def get_similaritymatrixview_data(
     clusters = sorted(clusters_data.keys())
 
     # get colors from application data:
-    cluster_colors = pd.Series([clusters_data[cl].application_data.klustaviewa.color or 1
-                           for cl in clusters], index=clusters)
+    cluster_colors = pd.Series(
+        [clusters_data[cl].application_data.klustaviewa.color or 1 for cl in clusters],
+        index=clusters,
+    )
     cluster_groups = pd.Series(
         [clusters_data[cl].cluster_group or 0 for cl in clusters], index=clusters
     )
@@ -471,8 +473,10 @@ def get_traceview_data(exp, channel_group=0, clustering="main"):
 
     freq = exp.application_data.spikedetekt.sample_rate
 
-	cluster_colors = pd.Series([clusters_data[cl].application_data.klustaviewa.color or 1
-	                   for cl in clusters], index=clusters)
+    cluster_colors = pd.Series(
+        [clusters_data[cl].application_data.klustaviewa.color or 1 for cl in clusters],
+        index=clusters,
+    )
     fetdim = exp.application_data.spikedetekt.nfeatures_per_channel
 
     s_before = exp.application_data.spikedetekt.extract_s_before

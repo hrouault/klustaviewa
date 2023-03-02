@@ -647,7 +647,9 @@ class TaskGraph(AbstractTaskGraph):
         if target is None:
             target = (
                 self.wizard.current_target(),
-                self.loader.get_cluster_color(self.wizard.current_target()),
+                get_array(self.loader.get_cluster_color(self.wizard.current_target()))[
+                    0
+                ],
             )
         if candidate is None:
             try:
