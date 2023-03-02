@@ -368,6 +368,7 @@ def get_correlogramsview_data(
     freq = exp.application_data.spikedetekt.sample_rate
 
     cluster_colors = clusters_data.color[clusters]
+    cluster_colors = pandaize(cluster_colors, clusters)
 
     # TODO: cache and optimize this
     spike_clusters = getattr(
