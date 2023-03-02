@@ -61,15 +61,7 @@ def get_waveformview_data(
     spike_clusters = getattr(spikes_data.clusters, clustering)[:]
     # spikes_selected = get_some_spikes_in_clusters(clusters, spike_clusters)
 
-    # cluster_colors = clusters_data.color[clusters]
-    # get colors from application data:
-    cluster_colors = pd.Series(
-        [_get_color(clusters_data, cl) for cl in clusters], index=clusters
-    )
-    # cluster_colors = pd.Series([
-    #     next_color(cl)
-    #         if cl in clusters_data else 1
-    #                        for cl in clusters], index=clusters)
+    cluster_colors = clusters_data.color[clusters]
 
     if spikes_data.waveforms_filtered is None:
 
@@ -164,18 +156,10 @@ def get_featureview_data(
     clusters_data = getattr(exp.channel_groups[channel_group].clusters, clustering)
     spikes_data = exp.channel_groups[channel_group].spikes
     channels_data = exp.channel_groups[channel_group].channels
-    nchannels = len(channels_data)
+    nchannels = spikes_data.nchannels
 
     spike_clusters = getattr(spikes_data.clusters, clustering)[:]
-    # cluster_colors = clusters_data.color[clusters]
-    # get colors from application data:
-    cluster_colors = pd.Series(
-        [_get_color(clusters_data, cl) for cl in clusters], index=clusters
-    )
-    # cluster_colors = pd.Series([
-    #     next_color(cl)
-    #         if cl in clusters_data else 1
-    #                        for cl in clusters], index=clusters)
+    cluster_colors = clusters_data.color[clusters]
 
     if len(clusters) > 0:
         # TODO: put fraction in user parameters
@@ -314,14 +298,14 @@ def get_clusterview_data(
 
     # get colors from application data:
     cluster_colors = pd.Series(
-        [_get_color(clusters_data, cl) for cl in clusters], index=clusters
+        [
+            (clusters_data[cl].application_data.klustaviewa.color or 1)
+            if cl in clusters_data
+            else 1
+            for cl in clusters
+        ],
+        index=clusters,
     )
-
-    # cluster_colors = pd.Series([
-    #     next_color(cl)
-    #         if cl in clusters_data else 1
-    #                        for cl in clusters], index=clusters)
-
     cluster_groups = pd.Series(
         [
             (
@@ -336,7 +320,13 @@ def get_clusterview_data(
         index=clusters,
     )
 
-    group_colors = pd.Series([next_color(cl) for g in groups], index=groups)
+    group_colors = pd.Series(
+        [
+            cluster_groups_data[g].application_data.klustaviewa.color or 1
+            for g in groups
+        ],
+        index=groups,
+    )
     group_names = pd.Series(
         [cluster_groups_data[g].name or "Group" for g in groups], index=groups
     )
@@ -380,18 +370,7 @@ def get_correlogramsview_data(
     )
     freq = exp.application_data.spikedetekt.sample_rate
 
-    # cluster_colors = clusters_data.color[clusters]
-    # cluster_colors = pandaize(cluster_colors, clusters)
-
-    # get colors from application data:
-    cluster_colors = pd.Series(
-        [_get_color(clusters_data, cl) for cl in clusters], index=clusters
-    )
-
-    # cluster_colors = pd.Series([
-    #     next_color(cl)
-    #         if cl in clusters_data else 1
-    #                        for cl in clusters], index=clusters)
+    cluster_colors = clusters_data.color[clusters]
 
     # TODO: cache and optimize this
     spike_clusters = getattr(
@@ -453,13 +432,8 @@ def get_similaritymatrixview_data(
     clusters = sorted(clusters_data.keys())
 
     # get colors from application data:
-    cluster_colors = pd.Series(
-        [_get_color(clusters_data, cl) for cl in clusters], index=clusters
-    )
-
-    # cluster_colors = pd.Series([next_color(cl)
-    #                        for cl in clusters], index=clusters)
-
+    cluster_colors = pd.Series([clusters_data[cl].application_data.klustaviewa.color or 1
+                           for cl in clusters], index=clusters)
     cluster_groups = pd.Series(
         [clusters_data[cl].cluster_group or 0 for cl in clusters], index=clusters
     )
@@ -497,7 +471,8 @@ def get_traceview_data(exp, channel_group=0, clustering="main"):
 
     freq = exp.application_data.spikedetekt.sample_rate
 
-    cluster_colors = pd.Series([next_color(cl) for cl in clusters], index=clusters)
+	cluster_colors = pd.Series([clusters_data[cl].application_data.klustaviewa.color or 1
+	                   for cl in clusters], index=clusters)
     fetdim = exp.application_data.spikedetekt.nfeatures_per_channel
 
     s_before = exp.application_data.spikedetekt.extract_s_before
