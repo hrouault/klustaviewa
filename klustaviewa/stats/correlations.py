@@ -17,8 +17,7 @@ class SimilarityMatrix(object):
         self.features = features
         nspikes, ndims = self.features.shape
         # Default masks.
-        if masks is None:
-            masks = np.ones((nspikes, ndims), dtype=np.float32)
+        masks = np.ones((nspikes, ndims), dtype=np.float32)
         self.masks = masks
         self.unmask_threshold = 10
         self.clear_cache()
@@ -53,8 +52,8 @@ class SimilarityMatrix(object):
         D = np.diag(sigma2.ravel())
         # expected features
         y = self.features * self.masks + (1 - self.masks) * nu
-        z = self.masks * self.features**2 + (1 - self.masks) * (nu ** 2 + sigma2)
-        eta = z - y ** 2
+        z = self.masks * self.features**2 + (1 - self.masks) * (nu**2 + sigma2)
+        eta = z - y**2
 
         self.y = y
         self.sigma2 = sigma2
@@ -77,26 +76,29 @@ class SimilarityMatrix(object):
             mymasks = np.take(self.masks, myspikes, axis=0)
             mymean = np.mean(myfeatures, axis=0).reshape((1, -1))
             # Boolean vector of size (nchannels,): which channels are unmasked?
-            unmask = ((mymasks>0).sum(axis=0) > self.unmask_threshold)
+            unmask = (mymasks > 0).sum(axis=0) > self.unmask_threshold
             mask = ~unmask
             nunmask = np.sum(unmask)
             if nmyspikes <= 1 or nunmask == 0:
                 mymean = np.zeros((1, myfeatures.shape[1]))
                 covmat = 1e-3 * np.eye(nunmask)  # optim: nactivefeatures
-                stats[c] = (mymean, covmat,
-                            (1e-3)**ndims, nmyspikes,
-                            np.zeros(ndims, dtype=np.bool)  # unmask
-                            )
+                stats[c] = (
+                    mymean,
+                    covmat,
+                    (1e-3) ** ndims,
+                    nmyspikes,
+                    np.zeros(ndims, dtype=np.bool),  # unmask
+                )
                 continue
 
             # optimization: covmat only for submatrix of active features
-            covmat = np.cov(myfeatures[:, unmask], rowvar=0) # stats for cluster c
+            covmat = np.cov(myfeatures[:, unmask], rowvar=0)  # stats for cluster c
 
             # Variation Bayesian approximation
             priorpoint = 1
-            covmat *= (nmyspikes - 1)  # get rid of the normalization factor
+            covmat *= nmyspikes - 1  # get rid of the normalization factor
             covmat += self.D[unmask, unmask] * priorpoint  # D = np.diag(sigma2.ravel())
-            covmat /= (nmyspikes + priorpoint - 1)
+            covmat /= nmyspikes + priorpoint - 1
 
             # the eta just for the current cluster
             etac = np.take(self.eta, myspikes, axis=0)
@@ -113,7 +115,10 @@ class SimilarityMatrix(object):
             # Compute the det of the covmat
             _sign, logdet = np.linalg.slogdet(covmat)
             if _sign < 0:
-                warn("The correlation matrix of cluster %d has a negative determinant (whaaat??)" % c)
+                warn(
+                    "The correlation matrix of cluster %d has a negative determinant (whaaat??)"
+                    % c
+                )
 
             stats[int(c)] = (mymean, covmat, logdet, nmyspikes, unmask)
 
@@ -133,8 +138,9 @@ class SimilarityMatrix(object):
             clusters_to_update = clusters_unique
 
         # Indices of spikes in each cluster, for the clusters to update only.
-        spikes_in_clusters = dict([(clu, np.nonzero(clusters == clu)[0])
-                                   for clu in clusters_to_update])
+        spikes_in_clusters = dict(
+            [(clu, np.nonzero(clusters == clu)[0]) for clu in clusters_to_update]
+        )
 
         self.compute_cluster_statistics(spikes_in_clusters)
         stats = self.stats
@@ -145,14 +151,14 @@ class SimilarityMatrix(object):
         def _compute_coeff(ci, cj):
 
             if ci not in stats or cj not in stats:
-                C[ci, cj] = 0.
+                C[ci, cj] = 0.0
                 return
 
             mui, Ci, logdeti, npointsi, unmaski = stats[ci]
             muj, Cj, logdetj, npointsj, unmaskj = stats[cj]
 
             if npointsi <= 1 or npointsj <= 1:
-                C[ci, cj] = 0.
+                C[ci, cj] = 0.0
                 return
 
             dmu = (muj - mui).reshape((-1, 1))
@@ -171,14 +177,16 @@ class SimilarityMatrix(object):
                 bj = np.linalg.lstsq(Cj, dmu_unmasked)[0]
 
             var = np.sum(dmu[masked] ** 2 / self.sigma2[masked])
-            logpij = (np.log(2*np.pi) * (-ndims/2.) +
-                     -.5 * (logdetj + np.sum(np.log(self.sigma2[masked]))) +
-                     -.5 * (np.dot(bj.T, dmu_unmasked) + var))
+            logpij = (
+                np.log(2 * np.pi) * (-ndims / 2.0)
+                + -0.5 * (logdetj + np.sum(np.log(self.sigma2[masked])))
+                + -0.5 * (np.dot(bj.T, dmu_unmasked) + var)
+            )
 
             # nspikes is the total number of spikes.
             wj = float(npointsj) / nspikes
 
-            C[ci, cj] = wj * np.exp(logpij)[0,0]
+            C[ci, cj] = wj * np.exp(logpij)[0, 0]
 
         for ci in clusters_to_update:
             for cj in clusters_unique:
@@ -186,6 +194,7 @@ class SimilarityMatrix(object):
                 _compute_coeff(cj, ci)
 
         return C
+
 
 def get_similarity_matrix(dic):
     """Return a correlation matrix from a dictionary. Normalization happens
@@ -205,22 +214,23 @@ def get_similarity_matrix(dic):
 
     return matrix
 
-def normalize(matrix, direction='row'):
 
-    if direction == 'row':
+def normalize(matrix, direction="row"):
+
+    if direction == "row":
         s = matrix.sum(axis=1)
     else:
         s = matrix.sum(axis=0)
 
     # Non-null rows.
-    indices = (s != 0)
+    indices = s != 0
 
     # Row normalization.
-    if direction == 'row':
-        matrix[indices, :] *= (1. / s[indices].reshape((-1, 1)))
+    if direction == "row":
+        matrix[indices, :] *= 1.0 / s[indices].reshape((-1, 1))
 
     # Column normalization.
     else:
-        matrix[:, indices] *= (1. / s[indices].reshape((1, -1)))
+        matrix[:, indices] *= 1.0 / s[indices].reshape((1, -1))
 
     return matrix
