@@ -17,7 +17,8 @@ class SimilarityMatrix(object):
         self.features = features
         nspikes, ndims = self.features.shape
         # Default masks.
-        masks = np.ones((nspikes, ndims), dtype=np.float32)
+        if masks is None:
+            masks = np.ones((nspikes, ndims), dtype=np.float32)
         self.masks = masks
         self.unmask_threshold = 10
         self.clear_cache()

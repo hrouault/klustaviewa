@@ -57,69 +57,127 @@ class ReclusterTask(QtCore.QObject):
     reclusterDone = QtCore.pyqtSignal(int, object, object, object, object)
 
     def recluster(self, exp, channel_group=0, clusters=None, wizard=None):
-        spikes, clu = run_klustakwik(exp, channel_group=channel_group,
-                             clusters=clusters)
+        spikes, clu = run_klustakwik(
+            exp, channel_group=channel_group, clusters=clusters
+        )
         return spikes, clu
 
-    def recluster_done(self, exp, channel_group=0, clusters=None, wizard=None, _result=None):
+    def recluster_done(
+        self, exp, channel_group=0, clusters=None, wizard=None, _result=None
+    ):
         spikes, clu = _result
         self.reclusterDone.emit(channel_group, clusters, spikes, clu, wizard)
 
 
 class CorrelogramsTask(QtCore.QObject):
-    correlogramsComputed = QtCore.pyqtSignal(np.ndarray, object, int, float, float, object)
+    correlogramsComputed = QtCore.pyqtSignal(
+        np.ndarray, object, int, float, float, object
+    )
 
     # def __init__(self, parent=None):
-        # super(CorrelogramsTask, self).__init__(parent)
+    # super(CorrelogramsTask, self).__init__(parent)
 
-    def compute(self, spiketimes, clusters, clusters_to_update=None,
-            clusters_selected=None, ncorrbins=None, corrbin=None, sample_rate=None, wizard=None):
-        log.debug("Computing correlograms for clusters {0:s}.".format(
-            str(list(clusters_to_update))))
+    def compute(
+        self,
+        spiketimes,
+        clusters,
+        clusters_to_update=None,
+        clusters_selected=None,
+        ncorrbins=None,
+        corrbin=None,
+        sample_rate=None,
+        wizard=None,
+    ):
+        log.debug(
+            "Computing correlograms for clusters {0:s}.".format(
+                str(list(clusters_to_update))
+            )
+        )
         if len(clusters_to_update) == 0:
             return {}
         clusters_to_update = np.array(clusters_to_update, dtype=np.int32)
-        correlograms = compute_correlograms(spiketimes, clusters,
+        correlograms = compute_correlograms(
+            spiketimes,
+            clusters,
             clusters_to_update=clusters_to_update,
-            ncorrbins=ncorrbins, corrbin=corrbin, sample_rate=sample_rate)
+            ncorrbins=ncorrbins,
+            corrbin=corrbin,
+            sample_rate=sample_rate,
+        )
         return correlograms
 
-    def compute_done(self, spiketimes, clusters, clusters_to_update=None,
-            clusters_selected=None, ncorrbins=None, corrbin=None, sample_rate=None, wizard=None, _result=None):
+    def compute_done(
+        self,
+        spiketimes,
+        clusters,
+        clusters_to_update=None,
+        clusters_selected=None,
+        ncorrbins=None,
+        corrbin=None,
+        sample_rate=None,
+        wizard=None,
+        _result=None,
+    ):
         correlograms = _result
-        self.correlogramsComputed.emit(np.array(clusters_selected),
-            correlograms, ncorrbins, corrbin, float(sample_rate), wizard)
+        self.correlogramsComputed.emit(
+            np.array(clusters_selected),
+            correlograms,
+            ncorrbins,
+            corrbin,
+            float(sample_rate),
+            wizard,
+        )
 
 
 class SimilarityMatrixTask(QtCore.QObject):
-    correlationMatrixComputed = QtCore.pyqtSignal(np.ndarray, object,
-        np.ndarray, np.ndarray, object)
+    correlationMatrixComputed = QtCore.pyqtSignal(
+        np.ndarray, object, np.ndarray, np.ndarray, object
+    )
 
     def __init__(self, parent=None):
         super(SimilarityMatrixTask, self).__init__(parent)
         self.sm = None
 
-    def compute(self, features, clusters,
-            cluster_groups, masks, clusters_selected, target_next=None,
-            similarity_measure=None):
-        log.debug("Computing correlation for clusters {0:s}.".format(
-            str(list(clusters_selected))))
+    def compute(
+        self,
+        features,
+        clusters,
+        cluster_groups,
+        masks,
+        clusters_selected,
+        target_next=None,
+        similarity_measure=None,
+    ):
+        log.debug(
+            "Computing correlation for clusters {0:s}.".format(
+                str(list(clusters_selected))
+            )
+        )
         if len(clusters_selected) == 0:
             return {}
-        if self.sm is None:
-            self.sm = SimilarityMatrix(features, masks)
+        self.sm = SimilarityMatrix(features, masks)
         correlations = self.sm.compute_matrix(clusters, clusters_selected)
         return correlations
 
-    def compute_done(self, features, clusters,
-            cluster_groups, masks, clusters_selected, target_next=None,
-            similarity_measure=None, _result=None):
+    def compute_done(
+        self,
+        features,
+        clusters,
+        cluster_groups,
+        masks,
+        clusters_selected,
+        target_next=None,
+        similarity_measure=None,
+        _result=None,
+    ):
         correlations = _result
-        self.correlationMatrixComputed.emit(np.array(clusters_selected),
+        self.correlationMatrixComputed.emit(
+            np.array(clusters_selected),
             correlations,
             get_array(clusters, copy=True),
             get_array(cluster_groups, copy=True),
-            target_next)
+            target_next,
+        )
 
 
 # -----------------------------------------------------------------------------
@@ -128,20 +186,19 @@ class SimilarityMatrixTask(QtCore.QObject):
 class ThreadedTasks(QtCore.QObject):
     def __init__(self, parent=None):
         super(ThreadedTasks, self).__init__(parent)
-        self.selection_task = inthread(SelectionTask)(
-            impatient=True)
-        self.recluster_task = inthread(ReclusterTask)(
-            impatient=True)
+        self.selection_task = inthread(SelectionTask)(impatient=True)
+        self.recluster_task = inthread(ReclusterTask)(impatient=True)
         self.correlograms_task = inprocess(CorrelogramsTask)(
-            impatient=True, use_master_thread=False)
+            impatient=True, use_master_thread=False
+        )
         # HACK: the similarity matrix view does not appear to update on
         # some versions of Mac+Qt, but it seems to work with inthread
-        if sys.platform == 'darwin':
-            self.similarity_matrix_task = inthread(SimilarityMatrixTask)(
-                impatient=True)
+        if sys.platform == "darwin":
+            self.similarity_matrix_task = inthread(SimilarityMatrixTask)(impatient=True)
         else:
             self.similarity_matrix_task = inprocess(SimilarityMatrixTask)(
-                impatient=True, use_master_thread=False)
+                impatient=True, use_master_thread=False
+            )
 
     def join(self):
         self.selection_task.join()
@@ -153,7 +210,5 @@ class ThreadedTasks(QtCore.QObject):
         self.correlograms_task.terminate()
         # The similarity matrix is in an external process only
         # if the system is not a Mac.
-        if sys.platform != 'darwin':
+        if sys.platform != "darwin":
             self.similarity_matrix_task.terminate()
-
-
