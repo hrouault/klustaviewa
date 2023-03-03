@@ -377,8 +377,12 @@ class TaskGraph(AbstractTaskGraph):
         # spikes=self.loader.background_spikes)
         # if not np.array_equal(clusters, clusters_now):
         # return False
-        if len(matrix) == 0:
+        try:
+            if len(matrix) == 0:
+                return []
+        except TypeError:
             return []
+
         self.statscache.similarity_matrix.update(clusters_selected, matrix)
         self.statscache.similarity_matrix_normalized = normalize(
             self.statscache.similarity_matrix.to_array(copy=True)
